@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>TrafficSimTuner</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 40px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input,
+        textarea {
+            width: 300px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>TrafficSimTuner</h1>
+
+    <form id="paramForm">
+        <label>Expected Delay at I2 (seconds):
+            <input type="number" step="0.1" name="i2" required>
+        </label>
+        <label>Expected Delay at I3 (seconds):
+            <input type="number" step="0.1" name="i3" required>
+        </label>
+        <label>Accel values (comma-separated):
+            <input type="text" name="accel" required>
+        </label>
+        <label>Tau values (comma-separated):
+            <input type="text" name="tau" required>
+        </label>
+        <label>Startup Delay values (comma-separated):
+            <input type="text" name="startup" required>
+        </label>
+        <button type="submit">Run Simulation</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        const form = document.getElementById('paramForm');
+        const resultDiv = document.getElementById('result');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            resultDiv.innerHTML = "⏳ Submitting...";
+
+            const formData = new FormData(form);
+            const data = {
+                expected_delays: {
+                    I2: parseFloat(formData.get("i2")),
+                    I3: parseFloat(formData.get("i3"))
+                },
+                accel_values: formData.get("accel").split(",").map(Number),
+                tau_values: formData.get("tau").split(",").map(Number),
+                startup_delay_values: formData.get("startup").split(",").map(Number)
+            };
+
+            try {
+                const response = await fetch('/submit_permutations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const json = await response.json();
+                resultDiv.innerHTML = `✅ Submitted ${json.total_combinations} simulations.<br>Waiting for results...`;
+
+                setTimeout(fetchResults, 5000); // poll after 5 sec
+            } catch (err) {
+                resultDiv.innerHTML = `❌ Error: ${err}`;
+            }
+        });
+
+        async function fetchResults() {
+            const res = await fetch('/results');
+            const json = await res.json();
+            if (json.winner) {
+                resultDiv.innerHTML = `
+                    🏆 Best Match:<br>
+                    Accel: <b>${json.winner.accel}</b><br>
+                    Tau: <b>${json.winner.tau}</b><br>
+                    Startup Delay: <b>${json.winner.startup_delay}</b><br>
+                    Total Error: <b>${json.winner.total_error.toFixed(2)}</b>
+                `;
+            } else {
+                resultDiv.innerHTML += "<br>⌛ Still waiting for results...";
+                setTimeout(fetchResults, 5000);
+            }
+        }
+    </script>
+</body>
+
+</html>
