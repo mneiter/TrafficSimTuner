@@ -36,6 +36,15 @@ worker-run-test:
 		--env-file .env \
 		traffic-sim-worker
 
+.PHONY: worker-run-test-with-env
+worker-run-test-with-env:
+	@echo "Running simulation worker with specific environment variables..."
+	docker run \
+		--name test-worker \
+		-e ACCEL=2.5 -e TAU=1.0 -e STARTUP_DELAY=0.5 \
+		-e MASTER_URL=http://host.docker.internal:8000/report_result \
+		traffic-sim-worker
+
 # ─────────────── Utilities ───────────────
 
 .PHONY: clean

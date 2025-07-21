@@ -30,9 +30,6 @@ def launch_simulations(input_data: SimulationInput):
                     "STARTUP_DELAY": str(startup_delay),
                     "MASTER_URL": "http://master:8000/report_result"
                 },
-                volumes={
-                    # Optional: mount scenario files or volume if needed
-                },
                 detach=True,
                 remove=True
             )

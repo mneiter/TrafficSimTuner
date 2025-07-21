@@ -1,59 +1,53 @@
 import os
-import subprocess
+import xml.etree.ElementTree as ET
 import requests
-import json
-import re
-from update_vtypes import update_vtypes
+from run_simulation import run_simulation
 
-# Paths
-DIR_PATH = os.path.dirname(os.path.abspath(__file__))
-RUN_SCRIPT = os.path.join(DIR_PATH, "run_simulation.py")
+VTYPES_PATH = "hw_model.vtypes.xml"
+MASTER_URL = os.environ.get("MASTER_URL")
 
-# Env
-ACCEL = os.getenv("ACCEL")
-TAU = os.getenv("TAU")
-STARTUP_DELAY = os.getenv("STARTUP_DELAY")
-MASTER_URL = os.getenv("MASTER_URL")
+def update_vtypes(accel: float, tau: float, startup_delay: float):
+    print(f"[INFO] Updating vtypes.xml with accel={accel}, tau={tau}, startupDelay={startup_delay}")
+    tree = ET.parse(VTYPES_PATH)
+    root = tree.getroot()
 
-def parse_output(output: str) -> dict:
-    delays = {}
-    for line in output.splitlines():
-        match = re.match(r"(I\d):\s+([\d.]+)\s+seconds", line)
-        if match:
-            delays[match.group(1)] = float(match.group(2))
-    return delays
+    for vtype in root.findall("vType"):
+        vtype.set("accel", str(accel))
+        vtype.set("tau", str(tau))
+        vtype.set("startupDelay", str(startup_delay))
 
-def report_to_master(result: dict):
-    if not MASTER_URL:
-        print("MASTER_URL is not defined. Skipping report.")
-        return
-
-    payload = {
-        "accel": float(ACCEL),
-        "tau": float(TAU),
-        "startup_delay": float(STARTUP_DELAY),
-        "intersection_avg_delays": result,
-        "total_error": sum((result.get(k, 0.0) - v) ** 2 for k, v in [("I2", 50.0), ("I3", 20.0)])
-    }
-
-    try:
-        response = requests.post(MASTER_URL, json=payload)
-        print(f"Report sent to master: {response.status_code}")
-    except Exception as e:
-        print(f"Failed to send result: {e}")
+    tree.write(VTYPES_PATH)
+    print("[INFO] vtypes.xml updated successfully.")
 
 def main():
-    update_vtypes()
+    try:
+        accel = float(os.environ.get("ACCEL", "2.0"))
+        tau = float(os.environ.get("TAU", "1.2"))
+        startup_delay = float(os.environ.get("STARTUP_DELAY", "0"))
 
-    result = subprocess.run(
-        ["python3", RUN_SCRIPT],
-        capture_output=True,
-        text=True
-    )
+        print(f"[INFO] Received parameters: ACCEL={accel}, TAU={tau}, STARTUP_DELAY={startup_delay}")
+        update_vtypes(accel, tau, startup_delay)
 
-    print(result.stdout)
-    parsed = parse_output(result.stdout)
-    report_to_master(parsed)
+        print("[INFO] Starting simulation...")
+        avg_delays = run_simulation()
+        print(f"[INFO] Simulation finished. Delays: {avg_delays}")
+
+        result = {
+            "accel": accel,
+            "tau": tau,
+            "startupDelay": startup_delay,
+            "intersection_avg_delays": avg_delays
+        }
+
+        if MASTER_URL:
+            print(f"[INFO] Posting results to Master at {MASTER_URL} ...")
+            resp = requests.post(MASTER_URL, json=result)
+            print(f"[INFO] Master responded with status {resp.status_code}")
+        else:
+            print("[WARN] MASTER_URL not set. Result not sent.")
+
+    except Exception as e:
+        print(f"[ERROR] Worker failed: {e}")
 
 if __name__ == "__main__":
     main()
