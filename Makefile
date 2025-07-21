@@ -4,7 +4,7 @@
 
 .PHONY: master-run
 master-run:
-	@echo "▶ Running FastAPI server locally..."
+	@echo "Running FastAPI server locally..."
 	cd master && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 .PHONY: master-install
@@ -17,6 +17,11 @@ master-build:
 	@echo "Building Docker image for master..."
 	docker build -t traffic-sim-master ./master
 
+.PHONY: master-up
+master-up:
+	@echo "Running master server via docker-compose..."
+	docker-compose up --build
+
 # ─────────────── Worker (Simulation) ───────────────
 
 .PHONY: worker-build
@@ -27,9 +32,13 @@ worker-build:
 .PHONY: worker-run-test
 worker-run-test:
 	@echo "Running simulation worker locally..."
-	docker run --rm \
-		-e ACCEL=2.5 -e TAU=1.0 -e STARTUP_DELAY=0.5 \
-		-e MASTER_URL=http://host.docker.internal:8000/report_result \
+	docker run --rm --network=simnet \
+		-e ACCEL=2.5 \
+		-e TAU=1.0 \
+		-e STARTUP_DELAY=0.5 \
+		-e EXPECTED_I2=50 \
+		-e EXPECTED_I3=20 \
+		-e MASTER_URL=http://master:8000/report_result \
 		traffic-sim-worker
 
 # ─────────────── Utilities ───────────────
@@ -43,9 +52,10 @@ clean:
 help:
 	@echo ""
 	@echo "Available Make targets:"
-	@echo "  make master-run          - Run FastAPI server (with reload)"
-	@echo "  make master-install      - Install dependencies for master"
-	@echo "  make master-build        - Build master Docker image"
-	@echo "  make worker-build        - Build worker Docker image"
-	@echo "  make worker-run-test     - Run a test worker with sample parameters"
-	@echo "  make clean               - Clean up unused Docker resources"
+	@echo "  make master-run         - Run FastAPI server (reload mode, local)"
+	@echo "  make master-install     - Install dependencies for master"
+	@echo "  make master-build       - Build master Docker image"
+	@echo "  make master-up          - Run master using docker-compose"
+	@echo "  make worker-build       - Build worker Docker image"
+	@echo "  make worker-run-test    - Run one test simulation worker"
+	@echo "  make clean              - Clean up unused Docker resources"
