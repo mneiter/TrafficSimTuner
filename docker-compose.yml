@@ -15,6 +15,20 @@ services:
     networks:
       - simnet
 
+  worker:
+    build:
+      context: ./worker
+    environment:
+      - ACCEL=2.5
+      - TAU=1.0
+      - STARTUP_DELAY=0.5
+      - MASTER_URL=http://master:8000/report_result
+    depends_on:
+      - master
+    networks:
+      - simnet
+    restart: 'no'
+
 networks:
   simnet:
     driver: bridge
