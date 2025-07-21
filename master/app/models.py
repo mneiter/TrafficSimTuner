@@ -14,4 +14,3 @@ class SimulationResult(BaseModel):
     tau: float
     startup_delay: float
     intersection_avg_delays: Dict[str, float]
-    total_error: float = Field(..., description="Squared error against expected delays")

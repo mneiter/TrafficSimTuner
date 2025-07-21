@@ -31,13 +31,13 @@ def main():
         print("[INFO] Starting simulation...")
         avg_delays = run_simulation()
         print(f"[INFO] Simulation finished. Delays: {avg_delays}")
-
+        
         result = {
             "accel": accel,
             "tau": tau,
-            "startupDelay": startup_delay,
+            "startup_delay": startup_delay,
             "intersection_avg_delays": avg_delays
-        }
+        }        
 
         if MASTER_URL:
             print(f"[INFO] Posting results to Master at {MASTER_URL} ...")

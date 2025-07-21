@@ -30,13 +30,6 @@ worker-build:
 	docker build -t traffic-sim-worker ./worker
 
 .PHONY: worker-run-test
-worker-run-test:
-	@echo "Running simulation worker locally with .env..."
-	docker run --rm --network=simnet \
-		--env-file .env \
-		traffic-sim-worker
-
-.PHONY: worker-run-test-with-env
 worker-run-test-with-env:
 	@echo "Running simulation worker with specific environment variables..."
 	docker run \
