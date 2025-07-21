@@ -31,14 +31,9 @@ worker-build:
 
 .PHONY: worker-run-test
 worker-run-test:
-	@echo "Running simulation worker locally..."
+	@echo "Running simulation worker locally with .env..."
 	docker run --rm --network=simnet \
-		-e ACCEL=2.5 \
-		-e TAU=1.0 \
-		-e STARTUP_DELAY=0.5 \
-		-e EXPECTED_I2=50 \
-		-e EXPECTED_I3=20 \
-		-e MASTER_URL=http://master:8000/report_result \
+		--env-file .env \
 		traffic-sim-worker
 
 # ─────────────── Utilities ───────────────
