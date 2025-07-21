@@ -6,6 +6,9 @@ from fastapi.templating import Jinja2Templates
 from .models import SimulationInput, SimulationResult
 from .runner import launch_simulations
 
+from pathlib import Path
+from fastapi.templating import Jinja2Templates
+
 app = FastAPI(title="TrafficSimTuner")
 
 # Allow frontend requests
@@ -18,7 +21,8 @@ app.add_middleware(
 )
 
 # Jinja2 templates directory
-templates = Jinja2Templates(directory="master/templates")
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 # In-memory result storage (simple prototype)
 results_store: list[SimulationResult] = []
@@ -31,6 +35,7 @@ def index(request: Request):
 # Start simulation batch with permutations
 @app.post("/submit_permutations")
 async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks):
+    results_store.clear()  # Clear old results
     background_tasks.add_task(launch_simulations, input_data)
     total = (
         len(input_data.accel_values) *
