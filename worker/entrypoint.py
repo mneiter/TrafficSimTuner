@@ -28,7 +28,7 @@ def main():
 
         try:
             ping_url = os.environ["MASTER_URL"].replace("/report_result", "/ping")
-            response = requests.get(ping_url, timeout=5)
+            response = requests.get(ping_url, timeout=5, headers={"Connection": "close"})
             if response.status_code == 200:
                 print("[INFO] Master is reachable")
             else:
@@ -52,8 +52,8 @@ def main():
 
         if MASTER_URL:
             print(f"[INFO] Posting results to Master at {MASTER_URL} ...")
-            resp = requests.post(MASTER_URL, json=result)
-            print(f"[INFO] Master responded with status {resp.status_code}")
+            response = requests.post(MASTER_URL, json=result, timeout=10, headers={"Connection": "close"})
+            print(f"[INFO] Master responded with status {response.status_code}")
         else:
             print("[WARN] MASTER_URL not set. Result not sent.")
 

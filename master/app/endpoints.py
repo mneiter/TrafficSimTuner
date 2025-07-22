@@ -47,12 +47,7 @@ async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks,
 async def receive_result(result: SimulationResult, store: InMemoryStore):
     try:
         print(f"[INFO] Received result: {result}")
-
-        if not hasattr(store, "_lock"):
-            store._lock = threading.Lock()
-
-        with store._lock:            
-            store.save_result(result)
+        store.save_result(result)
 
         print(f"[INFO] Total results stored: {len(store.get_results())}")
         return {"status": "result_received"}
@@ -80,6 +75,7 @@ def get_best_result(store: InMemoryStore):
             }
 
         best_result = find_best_result(results, input_data)
+
         print(f"[INFO] Best result found: {best_result}")
         return best_result
     except Exception as e:

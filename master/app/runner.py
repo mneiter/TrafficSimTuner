@@ -39,8 +39,8 @@ def launch_simulations(input_data: SimulationInput):
                 network="simnet",
                 working_dir="/app",
                 command=["python3", "entrypoint.py"],
-                detach=True,                
-                # remove=True
+                detach=True,      
+                auto_remove=True
             )
         except Exception as e:
             print(f"[ERROR] Failed to launch container {container_name}: {e}")
