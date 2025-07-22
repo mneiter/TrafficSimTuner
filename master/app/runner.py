@@ -1,50 +1,44 @@
-import docker
-from .models import SimulationInput
-from itertools import product
 import uuid
-import traceback
-import time
+import docker
+from itertools import product
+from .models import SimulationInput
 
-def launch_simulations(input_data: SimulationInput):
-    """
-    Launch one Docker container per permutation of input parameters.
-    Uses docker SDK with reliable network configuration.
-    """
-    try:
-        client = docker.from_env()
-    except Exception as e:
-        print(f"[ERROR] Docker client init failed: {e}")
-        return
+class SimulationRunner:
+    def __init__(self):
+        self.client = docker.from_env()
 
-    permutations = list(product(
-        input_data.accel_values,
-        input_data.tau_values,
-        input_data.startup_delay_values
-    ))
+    def launch(self, input_data: SimulationInput):
+        combinations = self._generate_combinations(input_data)
+        print(f"[INFO] Launching {len(combinations)} workers...")
 
-    for accel, tau, startup_delay in permutations:
+        for params in combinations:
+            self._start_worker(*params)
+
+        print("[INFO] All workers launched. Waiting before exit...")
+
+    def _generate_combinations(self, input_data: SimulationInput):
+        return list(product(
+            input_data.accel_values,
+            input_data.tau_values,
+            input_data.startup_delay_values
+        ))
+
+    def _start_worker(self, accel, tau, startup_delay):
         container_name = f"worker_{uuid.uuid4().hex[:8]}"
         print(f"[INFO] Launching worker: {container_name} with accel={accel}, tau={tau}, startup_delay={startup_delay}")
 
-        try:
-            client.containers.run(
-                image="traffic-sim-worker",
-                name=container_name,
-                environment={
-                    "ACCEL": str(accel),
-                    "TAU": str(tau),
-                    "STARTUP_DELAY": str(startup_delay),
-                    "MASTER_URL": "http://host.docker.internal:8000/report_result"
-                },
-                network="simnet",
-                working_dir="/app",
-                command=["python3", "entrypoint.py"],
-                detach=True,      
-                auto_remove=True
-            )
-        except Exception as e:
-            print(f"[ERROR] Failed to launch container {container_name}: {e}")
-            traceback.print_exc()
-
-    print("[INFO] All workers launched. Waiting before exit...")
-    time.sleep(20)
+        self.client.containers.run(
+            "traffic-sim-worker",
+            detach=True,
+            network="simnet",
+            name=container_name,
+            environment={
+                "ACCEL": accel,
+                "TAU": tau,
+                "STARTUP_DELAY": startup_delay,
+                "MASTER_URL": "http://host.docker.internal:8000/report_result"
+            },
+            working_dir="/app",
+            command=["python3", "entrypoint.py"],
+            auto_remove=True
+        )

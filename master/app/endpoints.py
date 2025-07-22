@@ -5,11 +5,13 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
 from .models import SimulationInput, SimulationResult
-from .runner import launch_simulations
 from .InMemoryStore import InMemoryStore
+from .runner import SimulationRunner
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+runner = SimulationRunner()
 
 def ping():
     print("[INFO] Ping endpoint called")
@@ -31,7 +33,7 @@ async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks,
         print(f"[INFO] Received input data: {input_data}")
         store.save_input_data(input_data)
 
-        background_tasks.add_task(launch_simulations, input_data)
+        background_tasks.add_task(runner.launch, input_data)
         num_workers = (
             len(input_data.accel_values) *
             len(input_data.tau_values) *
