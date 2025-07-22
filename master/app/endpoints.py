@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
 from .models import SimulationInput, SimulationResult
-from .InMemoryStore import InMemoryStore
+from .store import InMemoryStore
 from .runner import SimulationRunner
 from .scoring import find_best_result
 

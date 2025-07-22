@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from .models import SimulationInput, SimulationResult
-from .InMemoryStore import InMemoryStore
+from .store import InMemoryStore
 from . import endpoints
 
 app = FastAPI(title="TrafficSimTuner")
