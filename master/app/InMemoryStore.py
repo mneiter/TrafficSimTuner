@@ -1,5 +1,6 @@
 from typing import List, Optional
 from .models import SimulationResult, SimulationInput
+import logging
 
 class InMemoryStore:
     _instance = None
@@ -14,6 +15,7 @@ class InMemoryStore:
 
     # --- Simulation Results ---
     def save_result(self, result: SimulationResult):
+        print(f"[INFO] Saving simulation result: {result}")
         self._results.append(result)
 
     def get_results(self) -> List[SimulationResult]:

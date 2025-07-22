@@ -44,7 +44,6 @@ worker-run-test:
 restart:
 	@echo "Restarting project (docker-compose down + up --build)..."
 	docker-compose down
-	docker build -t traffic-sim-worker ./worker
 	docker-compose up --build
 
 .PHONY: clean

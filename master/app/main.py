@@ -1,26 +1,15 @@
-import threading
 from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 
 from .models import SimulationInput, SimulationResult
-from .runner import launch_simulations
-
-from pathlib import Path
-
-from .redis_client import RedisClient
-
 from .InMemoryStore import InMemoryStore
-
+from . import endpoints
 
 app = FastAPI(title="TrafficSimTuner")
-# app.state.redis = RedisClient()
-
 app.state.store = InMemoryStore()
 
-
-# Allow frontend requests
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,123 +18,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Jinja2 templates directory
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
-
 @app.get("/ping")
 def ping():
-    print("[INFO] Ping endpoint called")
-    return {"status": "ok"}
+    return endpoints.ping()
 
-# Serve UI
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    try:
-        print("[INFO] Serving index.html")
-        return templates.TemplateResponse("index.html", {"request": request})
-    except Exception as e:
-        print(f"[ERROR] Failed to render index.html: {e}")
-        return HTMLResponse(content="Internal Server Error", status_code=500)
+    return endpoints.index(request)
 
-# Start simulation batch with permutations
 @app.post("/submit_permutations")
 async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks, request: Request):
-    try:
-        store: InMemoryStore = app.state.store
-        store.clear()
+    return await endpoints.submit(input_data, background_tasks, app.state.store)
 
-        print(f"[DEBUG] Redis values before submit: input_data={store.get_input_data()}, results={store.get_results()}, worker_count={store.get_worker_count()}")
-
-        print(f"[INFO] Received input data: {input_data}")
-        store.save_input_data(input_data)
-
-        background_tasks.add_task(launch_simulations, input_data)
-        num_workers = (
-            len(input_data.accel_values) *
-            len(input_data.tau_values) *
-            len(input_data.startup_delay_values)
-        )
-        store.set_worker_count(num_workers)
-        print(f"[INFO] Submitted simulation job with {num_workers} combinations.")
-        return {"status": "processing_started", "total_combinations": num_workers}
-    except Exception as e:
-        print(f"[ERROR] Failed to submit simulation: {e}")
-        return {"status": "error", "message": str(e)}
-
-# Receive a result from a simulation worker
 @app.post("/report_result")
 async def receive_result(result: SimulationResult, request: Request):
-    try:
-        store: InMemoryStore = app.state.store
+    return await endpoints.receive_result(result, app.state.store)
 
-        print(f"[INFO] Received result: {result}")
-
-        store.save_result(result)
-        results = store.get_results()
-
-        print(f"[INFO] Total results stored: {len(results)}")
-        
-        return {"status": "result_received"}
-    except Exception as e:
-        print(f"[ERROR] Failed to process result: {e}")
-        return {"status": "error", "message": str(e)}
-
-# Return the best result so far
 @app.get("/results")
 def get_best_result(request: Request):
-    try:
-        store: InMemoryStore = app.state.store
-        results = store.get_results()
-        input_data = store.get_input_data()
-        expected_total = store.get_worker_count()
-
-        print(f"[INFO] Restored input data: {input_data}")
-        
-        print(f"[DEBUG] Stored {len(results)} of {expected_total} expected results.")
-
-        if not results:
-            print("[INFO] No results yet.")
-            return {"status": "no_results_yet"}
-
-        if len(results) < expected_total:
-            print("[INFO] Waiting for more results...")
-            return {
-                "status": "in_progress",
-                "received": len(results),
-                "expected": expected_total
-            }
-
-        best_result = find_best_result(results, input_data)
-        print(f"[INFO] Best result found: {best_result}")
-
-        return best_result
-
-    except Exception as e:
-        print(f"[ERROR] Failed to fetch results: {e}")
-        return {"status": "error", "message": str(e)}
-
-def find_best_result(results, input_data):
-    expected_delays = input_data.expected_delays
-
-    print("[INFO] All results:")
-    for r in results:
-        print("-" * 40)
-        print(r)
-
-    def calculating_minimum_value(r: SimulationResult):
-        return (
-                (r.intersection_avg_delays.get("I2", 0.0) - expected_delays["I2"]) ** 2 +
-                (r.intersection_avg_delays.get("I3", 0.0) - expected_delays["I3"]) ** 2
-            )
-    
-    for r in results:
-        score = calculating_minimum_value(r)
-        print("-" * 40)
-        print(f"Result: {r}")
-        print(f"Score: {score:.4f}")
-
-    best_result = min(results, key=calculating_minimum_value)
-    print("=" * 40)
-    print(f"[INFO] Best result found: {best_result}")
-    return best_result
+    return endpoints.get_best_result(app.state.store)
