@@ -16,7 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the app
 COPY ./app ./app
 COPY ./templates ./templates
-COPY ./static ./static
+COPY ./static ./
+
+# Make shared available everywhere
+ENV PYTHONPATH="${PYTHONPATH}:/app"
 
 # Set the default working directory to /app
 WORKDIR /app

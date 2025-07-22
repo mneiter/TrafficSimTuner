@@ -40,7 +40,7 @@ def launch_simulations(input_data: SimulationInput):
                 working_dir="/app",
                 command=["python3", "entrypoint.py"],
                 detach=True,                
-                remove=True
+                # remove=True
             )
         except Exception as e:
             print(f"[ERROR] Failed to launch container {container_name}: {e}")

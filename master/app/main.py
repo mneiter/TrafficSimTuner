@@ -1,3 +1,4 @@
+import threading
 from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -7,10 +8,17 @@ from .models import SimulationInput, SimulationResult
 from .runner import launch_simulations
 
 from pathlib import Path
+
 from .redis_client import RedisClient
 
+from .InMemoryStore import InMemoryStore
+
+
 app = FastAPI(title="TrafficSimTuner")
-app.state.redis = RedisClient()
+# app.state.redis = RedisClient()
+
+app.state.store = InMemoryStore()
+
 
 # Allow frontend requests
 app.add_middleware(
@@ -44,13 +52,13 @@ def index(request: Request):
 @app.post("/submit_permutations")
 async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks, request: Request):
     try:
-        redis_client: RedisClient = request.app.state.redis
-        redis_client.clear()
+        store: InMemoryStore = app.state.store
+        store.clear()
 
-        print(f"[DEBUG] Redis values before submit: input_data={redis_client.get_input_data()}, results={redis_client.get_results()}, worker_count={redis_client.get_worker_count()}")
+        print(f"[DEBUG] Redis values before submit: input_data={store.get_input_data()}, results={store.get_results()}, worker_count={store.get_worker_count()}")
 
         print(f"[INFO] Received input data: {input_data}")
-        redis_client.save_input_data(input_data)
+        store.save_input_data(input_data)
 
         background_tasks.add_task(launch_simulations, input_data)
         num_workers = (
@@ -58,7 +66,7 @@ async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks,
             len(input_data.tau_values) *
             len(input_data.startup_delay_values)
         )
-        redis_client.set_worker_count(num_workers)
+        store.set_worker_count(num_workers)
         print(f"[INFO] Submitted simulation job with {num_workers} combinations.")
         return {"status": "processing_started", "total_combinations": num_workers}
     except Exception as e:
@@ -69,14 +77,13 @@ async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks,
 @app.post("/report_result")
 async def receive_result(result: SimulationResult, request: Request):
     try:
-        redis_client: RedisClient = request.app.state.redis
+        store: InMemoryStore = app.state.store
 
         print(f"[INFO] Received result: {result}")
 
-        results = redis_client.get_results()
-        results.append(result)
-        redis_client.save_results(results)
-        
+        store.save_result(result)
+        results = store.get_results()
+
         print(f"[INFO] Total results stored: {len(results)}")
         
         return {"status": "result_received"}
@@ -88,12 +95,13 @@ async def receive_result(result: SimulationResult, request: Request):
 @app.get("/results")
 def get_best_result(request: Request):
     try:
-        redis_client: RedisClient = request.app.state.redis
-        results = redis_client.get_results()
-        input_data = redis_client.get_input_data()
-        expected_total = redis_client.get_worker_count()
+        store: InMemoryStore = app.state.store
+        results = store.get_results()
+        input_data = store.get_input_data()
+        expected_total = store.get_worker_count()
 
         print(f"[INFO] Restored input data: {input_data}")
+        
         print(f"[DEBUG] Stored {len(results)} of {expected_total} expected results.")
 
         if not results:

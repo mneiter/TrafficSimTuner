@@ -40,6 +40,13 @@ worker-run-test:
 
 # ─────────────── Utilities ───────────────
 
+.PHONY: restart
+restart:
+	@echo "Restarting project (docker-compose down + up --build)..."
+	docker-compose down
+	docker build -t traffic-sim-worker ./worker
+	docker-compose up --build
+
 .PHONY: clean
 clean:
 	@echo "Cleaning up dangling containers/images..."
@@ -56,3 +63,4 @@ help:
 	@echo "  make worker-build       - Build worker Docker image"
 	@echo "  make worker-run-test    - Run one test simulation worker"
 	@echo "  make clean              - Clean up unused Docker resources"
+	@echo "  make restart            - Restart docker-compose with fresh build"

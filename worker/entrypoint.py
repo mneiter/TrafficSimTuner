@@ -41,7 +41,6 @@ def main():
 
         print("[INFO] Starting simulation...")
         avg_delays = run_simulation()
-        
         print(f"[INFO] Simulation finished. Delays: {avg_delays}")
         
         result = {
