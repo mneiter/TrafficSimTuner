@@ -91,4 +91,20 @@ def find_best_result(results, input_data):
             (r.intersection_avg_delays.get("I3", 0.0) - expected_delays["I3"]) ** 2
         )
 
-    return min(results, key=score)
+    print("=" * 50)
+    print("[INFO] Calculating scores for all results:")
+    scored_results = []
+    for r in results:
+        s = score(r)
+        print(f"→ Score={s:.4f} | Accel={r.accel}, Tau={r.tau}, StartupDelay={r.startup_delay}, Delays={r.intersection_avg_delays}")
+        scored_results.append((r, s))
+
+    best_result, best_score = min(scored_results, key=lambda x: x[1])
+
+    print("-" * 50)
+    print(f"[INFO] Best result: {best_result}")
+    print(f"[INFO] Best score: {best_score:.4f}")
+    print("=" * 50)
+
+    return best_result
+
