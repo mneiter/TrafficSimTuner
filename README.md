@@ -1,16 +1,17 @@
 # 🚦 TrafficSimTuner
 
-**TrafficSimTuner** is a simulation and optimization tool for traffic intersections. It uses SUMO (Simulation of Urban Mobility) and a Python backend (FastAPI) to launch vehicle flow simulations with various configurations, collect delay results, and determine the optimal parameters.
+**TrafficSimTuner** is a simulation and optimization tool for traffic intersections. It uses SUMO (Simulation of Urban Mobility) to simulate vehicle flows and FastAPI to manage simulation tasks, aggregate results, and identify the optimal configuration.
 
 ---
 
-## 📦 Tech Stack
+## 🧰 Tech Stack
 
-- **Python 3.10+**
-- **FastAPI** + HTML (Jinja2)
-- **Docker / Docker Compose**
+- **Python 3.11+**
+- **FastAPI** with Jinja2 HTML templates
 - **SUMO** (microscopic traffic simulator)
-- **Makefile** for easy CLI usage
+- **Docker & Docker Compose**
+- **Makefile** for developer convenience
+- **Pydantic** for data validation
 
 ---
 
@@ -20,70 +21,56 @@
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Git](https://git-scm.com/)
-- (Optional) [Make](https://www.gnu.org/software/make/) – for convenient commands
+- (Optional) [Make](https://www.gnu.org/software/make/)
 
-### 2. Clone the repository
+### 2. Clone the Repository
 
 ```bash
 git clone https://github.com/mneiter/TrafficSimTuner.git
 cd TrafficSimTuner
 ```
 
----
+### 3. (Optional) Create Virtual Environment
 
-## ⚙️ Run the App
-
-### 🔧 Option A: Using Makefile (Recommended)
-
-Run FastAPI server:
+> This step is for local development outside Docker.
 
 ```bash
-make master-run
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r master/requirements.txt
 ```
-
-Build Docker images:
-
-```bash
-make master-build     # Backend (FastAPI)
-make worker-build     # Worker (SUMO simulation)
-```
-
-Run a test simulation manually:
-
-```bash
-make worker-run-test
-```
-
-Clean Docker resources:
-
-```bash
-make clean
-```
-
-### 🔧 Option B: Using Docker Compose
-
-Only run the FastAPI server:
-
-```bash
-docker compose up --build master
-```
-
-> App will be available at: [http://localhost:8000](http://localhost:8000)
-
-> By default, the `worker` container is not auto-started.
 
 ---
 
-## 📊 Running a Worker Simulation
+## ⚙️ Running the Application
 
-To run a single simulation manually:
+### 🔁 With Docker Compose
+
+```bash
+make restart
+```
+
+This will:
+
+- Shut down previous containers
+- Build the images (Master, Worker, Redis)
+- Launch the backend and infrastructure
+
+The app will be available at [http://localhost:8000](http://localhost:8000)
+
+> Worker containers are launched dynamically based on your simulation request.
+
+---
+
+### 🧪 Run a Single Worker Manually
 
 ```bash
 docker run --rm \
+  --network=simnet \
   -e ACCEL=2.5 \
   -e TAU=1.0 \
   -e STARTUP_DELAY=0.5 \
-  -e MASTER_URL=http://host.docker.internal:8000/report_result \
+  -e MASTER_URL=http://master:8000/report_result \
   traffic-sim-worker
 ```
 
@@ -94,16 +81,21 @@ docker run --rm \
 ```
 TrafficSimTuner/
 ├── master/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── templates/
+│   │   ├── index.html         # Frontend UI
 │   ├── app/
-│   │   ├── main.py         # FastAPI application
-│   │   ├── models.py       # Data schemas
-│   │   └── runner.py       # Launches simulation permutations
-│   ├── templates/          # index.html (frontend UI)
-│   └── requirements.txt
+│   │   ├── main.py
+│   │   ├── endpoints.py
+│   │   ├── InMemoryStore.py
+│   │   ├── runner.py
+│   │   └── ...
 ├── worker/
-│   ├── entrypoint.py       # Updates vehicle params, runs simulation
-│   ├── run_simulation.py   # Connects to SUMO via TraCI
-│   ├── hw_model.*.xml      # SUMO model files (routes, config, etc.)
+│   ├── Dockerfile
+│   ├── entrypoint.py
+│   ├── run_simulation.py
+│   ├── hw_model.*.xml     # SUMO network/config files
 ├── docker-compose.yml
 ├── Makefile
 └── README.md
@@ -111,30 +103,42 @@ TrafficSimTuner/
 
 ---
 
-## 🏁 How it works
+## 📬 API Endpoints (FastAPI)
 
-1. User submits parameter ranges (accel, tau, startupDelay) via UI.
-2. Backend generates permutations and spawns workers.
-3. Each worker runs SUMO with updated vtypes, reports average delays.
-4. Backend selects the best result based on squared error.
-
----
-
-## 📮 Endpoints (FastAPI)
-
-- `POST /submit_permutations` — trigger batch of simulations
-- `POST /report_result` — worker sends one result
-- `GET /results` — return the best result (once all simulations finish)
-- `GET /` — main UI page (HTML)
+- `GET /` – UI HTML page
+- `GET /ping` – health check
+- `POST /submit_permutations` – submit range of parameters
+- `POST /report_result` – worker reports simulation result
+- `GET /results` – fetch best result or status
 
 ---
 
-## 🙋 Support
+## 📈 How It Works
 
-Open an issue or contact [Michael](mailto:michael@example.com) for help.
+1. User submits ranges for `accel`, `tau`, and `startup_delay`
+2. The master backend spawns one Docker worker per permutation
+3. Each worker runs SUMO with adjusted parameters
+4. Each worker reports its average delays to the master
+5. The master selects the best result using score minimization
+
+---
+
+## 🧹 Common Commands (Makefile)
+
+```bash
+make master-run         # Run FastAPI server locally
+make master-install     # Install Python packages for master
+make master-build       # Build Docker image for master
+make worker-build       # Build Docker image for worker
+make worker-run-test    # Run one worker manually
+make clean              # Remove dangling Docker resources
+make restart            # Rebuild and restart the whole stack
+```
 
 ---
 
 ## 📝 License
 
-MIT License. See [LICENSE](LICENSE) for more information.
+MIT License — see `LICENSE`.
+
+Project Repository: [https://github.com/mneiter/TrafficSimTuner](https://github.com/mneiter/TrafficSimTuner)
