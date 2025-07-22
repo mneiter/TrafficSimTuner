@@ -7,6 +7,7 @@ from pathlib import Path
 from .models import SimulationInput, SimulationResult
 from .InMemoryStore import InMemoryStore
 from .runner import SimulationRunner
+from .scoring import find_best_result
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -76,37 +77,11 @@ def get_best_result(store: InMemoryStore):
                 "expected": expected_total
             }
 
-        best_result = find_best_result(results, input_data)
-
+        best_result, best_score = find_best_result(results, input_data)
         print(f"[INFO] Best result found: {best_result}")
+        print(f"[INFO] Minimum score: {best_score:.4f}")
+
         return best_result
     except Exception as e:
         print(f"[ERROR] Failed to fetch results: {e}")
         return {"status": "error", "message": str(e)}
-
-def find_best_result(results, input_data):
-    expected_delays = input_data.expected_delays
-
-    def score(r: SimulationResult):
-        return (
-            (r.intersection_avg_delays.get("I2", 0.0) - expected_delays["I2"]) ** 2 +
-            (r.intersection_avg_delays.get("I3", 0.0) - expected_delays["I3"]) ** 2
-        )
-
-    print("=" * 50)
-    print("[INFO] Calculating scores for all results:")
-    scored_results = []
-    for r in results:
-        s = score(r)
-        print(f"→ Score={s:.4f} | Accel={r.accel}, Tau={r.tau}, StartupDelay={r.startup_delay}, Delays={r.intersection_avg_delays}")
-        scored_results.append((r, s))
-
-    best_result, best_score = min(scored_results, key=lambda x: x[1])
-
-    print("-" * 50)
-    print(f"[INFO] Best result: {best_result}")
-    print(f"[INFO] Best score: {best_score:.4f}")
-    print("=" * 50)
-
-    return best_result
-

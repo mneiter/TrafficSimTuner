@@ -51,6 +51,23 @@ clean:
 	@echo "Cleaning up dangling containers/images..."
 	docker system prune -f
 
+# ─────────────── Tests ───────────────
+
+.PHONY: test
+test:
+	@echo "Running all unit tests..."
+	pytest
+
+.PHONY: test-verbose
+test-verbose:
+	@echo "Running all unit tests in verbose mode..."
+	pytest -v
+
+.PHONY: test-cov
+test-cov:
+	@echo "Running tests with coverage..."
+	pytest --cov=master.app tests/
+
 .PHONY: help
 help:
 	@echo ""
@@ -63,3 +80,7 @@ help:
 	@echo "  make worker-run-test    - Run one test simulation worker"
 	@echo "  make clean              - Clean up unused Docker resources"
 	@echo "  make restart            - Restart docker-compose with fresh build"
+	@echo "  make test               - Run all unit tests"
+	@echo "  make test-verbose       - Run all unit tests in verbose mode"
+	@echo "  make test-cov           - Run unit tests with coverage report"
+	@echo "  make test-file f=...    - Run a specific test file (e.g. make test-file f=tests/test_runner.py)"
