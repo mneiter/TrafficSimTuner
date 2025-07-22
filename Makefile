@@ -30,7 +30,7 @@ worker-build:
 	docker build -t traffic-sim-worker ./worker
 
 .PHONY: worker-run-test
-worker-run-test-with-env:
+worker-run-test:
 	@echo "Running simulation worker with specific environment variables..."
 	docker run \
 		--name test-worker \

@@ -84,31 +84,54 @@
                     body: JSON.stringify(data)
                 });
                 const json = await response.json();
-                resultDiv.innerHTML = `✅ Submitted ${json.total_combinations} simulations.<br>Waiting for results...`;
+                resultDiv.innerHTML = `✅ Submitted <b>${json.total_combinations}</b> simulations.<br>⏳ Waiting for results...`;
 
-                setTimeout(fetchResults, 5000); // poll after 5 sec
+                setTimeout(fetchResults, 5000); // First check after 5 seconds
             } catch (err) {
                 resultDiv.innerHTML = `❌ Error: ${err}`;
             }
         });
 
         async function fetchResults() {
-            const res = await fetch('/results');
-            const json = await res.json();
-            if (json.winner) {
-                resultDiv.innerHTML = `
-                    🏆 Best Match:<br>
-                    Accel: <b>${json.winner.accel}</b><br>
-                    Tau: <b>${json.winner.tau}</b><br>
-                    Startup Delay: <b>${json.winner.startup_delay}</b><br>
-                    Total Error: <b>${json.winner.total_error.toFixed(2)}</b>
+            try {
+                const res = await fetch('/results');
+                const json = await res.json();
+
+                if (json.status === "no_results_yet") {
+                    resultDiv.innerHTML += "<br>⌛ Waiting for results to start...";
+                    setTimeout(fetchResults, 5000);
+                    return;
+                }
+
+                if (json.status === "in_progress") {
+                    resultDiv.innerHTML += `<br>⌛ Progress: <b>${json.received}</b> / ${json.expected} results`;
+                    setTimeout(fetchResults, 5000);
+                    return;
+                }
+
+                if (res.ok && json.accel !== undefined) {
+                    resultDiv.innerHTML = `
+                    🏁 <b>Best Match Found!</b><br><br>
+                    <b>Accel:</b> ${json.accel}<br>
+                    <b>Tau:</b> ${json.tau}<br>
+                    <b>Startup Delay:</b> ${json.startup_delay}<br>
+                    <br><b>Intersection Avg Delays:</b><br>
+                    I2: ${json.intersection_avg_delays?.I2.toFixed(2)} sec<br>
+                    I3: ${json.intersection_avg_delays?.I3.toFixed(2)} sec
                 `;
-            } else {
-                resultDiv.innerHTML += "<br>⌛ Still waiting for results...";
+                    return;
+                }
+
+                resultDiv.innerHTML += "<br>⌛ Still processing...";
                 setTimeout(fetchResults, 5000);
+
+            } catch (err) {
+                console.error("[ERROR] Failed to fetch results:", err);
+                resultDiv.innerHTML += "<br>❌ Error fetching results.";
             }
         }
     </script>
+
 </body>
 
 </html>

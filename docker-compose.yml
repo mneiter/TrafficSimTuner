@@ -12,6 +12,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - simnet
 
@@ -19,10 +25,10 @@ services:
     build:
       context: ./worker
     environment:
-      - ACCEL=2.5
-      - TAU=1.0
-      - STARTUP_DELAY=0.5
-      - MASTER_URL=http://master:8000/report_result
+      ACCEL: 2.5
+      TAU: 1.0
+      STARTUP_DELAY: 0.5
+      MASTER_URL: http://master:8000/report_result
     depends_on:
       - master
     networks:
@@ -31,6 +37,23 @@ services:
     profiles:
       - workers
 
+  redis:
+    image: redis:7
+    container_name: redis
+    networks:
+      - simnet
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 networks:
   simnet:
     driver: bridge
+
+volumes:
+  redis-data:

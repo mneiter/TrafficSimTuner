@@ -4,4 +4,4 @@ jinja2
 pydantic
 python-multipart
 docker
-
+redis

@@ -1,4 +1,5 @@
 import os
+import time
 import xml.etree.ElementTree as ET
 import requests
 from run_simulation import run_simulation
@@ -25,11 +26,22 @@ def main():
         tau = float(os.environ.get("TAU", "1.2"))
         startup_delay = float(os.environ.get("STARTUP_DELAY", "0"))
 
+        try:
+            ping_url = os.environ["MASTER_URL"].replace("/report_result", "/ping")
+            response = requests.get(ping_url, timeout=5)
+            if response.status_code == 200:
+                print("[INFO] Master is reachable")
+            else:
+                print(f"[WARN] Master ping failed with status {response.status_code}")
+        except Exception as e:
+            print(f"[ERROR] Could not reach master: {e}")
+
         print(f"[INFO] Received parameters: ACCEL={accel}, TAU={tau}, STARTUP_DELAY={startup_delay}")
         update_vtypes(accel, tau, startup_delay)
 
         print("[INFO] Starting simulation...")
         avg_delays = run_simulation()
+        
         print(f"[INFO] Simulation finished. Delays: {avg_delays}")
         
         result = {
