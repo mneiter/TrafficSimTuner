@@ -3,11 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from .models import SimulationInput, SimulationResult
+
 from .store import InMemoryStore
-from . import controller
+from .controller import TrafficSimController
+
+store = InMemoryStore()
+controller = TrafficSimController()
 
 app = FastAPI(title="TrafficSimTuner")
-app.state.store = InMemoryStore()
+app.state.store = store
 
 # CORS
 app.add_middleware(
@@ -28,12 +32,12 @@ def index(request: Request):
 
 @app.post("/submit_permutations")
 async def submit(input_data: SimulationInput, background_tasks: BackgroundTasks, request: Request):
-    return await controller.submit(input_data, background_tasks, app.state.store)
+    return await controller.submit(input_data, background_tasks, store)
 
 @app.post("/report_result")
 async def receive_result(result: SimulationResult, request: Request):
-    return await controller.receive_result(result, app.state.store)
+    return await controller.receive_result(result, store)
 
 @app.get("/results")
 def get_best_result(request: Request):
-    return controller.get_best_result(app.state.store)
+    return controller.get_best_result(store)
