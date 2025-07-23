@@ -1,3 +1,8 @@
+import logging
+from logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 import os
 import requests
 from run_simulation import run_simulation
@@ -13,19 +18,19 @@ class SimulationWorker:
 
     def ping_master(self):
         if not self.master_url:
-            print("[WARN] MASTER_URL is not set. Skipping ping.")
+            logger.warning("MASTER_URL is not set. Skipping ping.")
             return False
         try:
             ping_url = self.master_url.replace("/report_result", "/ping")
             response = requests.get(ping_url, timeout=5, headers={"Connection": "close"})
             if response.status_code == 200:
-                print("[INFO] Master is reachable")
+                logger.info("Master is reachable")
                 return True
             else:
-                print(f"[WARN] Master ping failed with status {response.status_code}")
+                logger.warning(f"Master ping failed with status {response.status_code}")
                 return False
         except Exception as e:
-            print(f"[ERROR] Could not reach master: {e}")
+            logger.error(f"Could not reach master: {e}")
             return False
 
     def update_vtypes(self):
@@ -33,22 +38,22 @@ class SimulationWorker:
         updater.update(self.accel, self.tau, self.startup_delay)
 
     def run_simulation(self):
-        print("[INFO] Starting simulation...")
+        logger.info("Starting simulation...")
         return run_simulation()
 
     def post_results(self, result: dict):
         if not self.master_url:
-            print("[WARN] MASTER_URL not set. Result not sent.")
+            logger.warning("MASTER_URL not set. Result not sent.")
             return
         try:
-            print(f"[INFO] Posting results to Master at {self.master_url} ...")
+            logger.info(f"Posting results to Master at {self.master_url} ...")
             response = requests.post(self.master_url, json=result, timeout=10, headers={"Connection": "close"})
-            print(f"[INFO] Master responded with status {response.status_code}")
+            logger.info(f"Master responded with status {response.status_code}")
         except Exception as e:
-            print(f"[ERROR] Failed to send result to master: {e}")
+            logger.error(f"Failed to send result to master: {e}")
 
     def execute(self):
-        print(f"[INFO] Received parameters: ACCEL={self.accel}, TAU={self.tau}, STARTUP_DELAY={self.startup_delay}")
+        logger.info(f" Received parameters: ACCEL={self.accel}, TAU={self.tau}, STARTUP_DELAY={self.startup_delay}")
 
         self.ping_master()
         self.update_vtypes()

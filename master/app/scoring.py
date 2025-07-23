@@ -1,3 +1,8 @@
+import logging
+from .logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 from typing import List, Tuple
 from .models import SimulationInput, SimulationResult
 
@@ -12,7 +17,7 @@ class Scoring:
         i2_error = (result.intersection_avg_delays.get("I2", 0.0) - self.expected_delays["I2"]) ** 2
         i3_error = (result.intersection_avg_delays.get("I3", 0.0) - self.expected_delays["I3"]) ** 2
         total_error = i2_error + i3_error
-        print(f"[DEBUG] Score for {result}: {total_error:.4f}")
+        logger.debug(f"Score for {result}: {total_error:.4f}")
         return total_error
 
     def best_result(self, results: List[SimulationResult]) -> Tuple[SimulationResult, float]:

@@ -1,3 +1,8 @@
+import logging
+from .logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 import uuid
 import docker
 from itertools import product
@@ -9,12 +14,12 @@ class SimulationRunner:
 
     def launch(self, input_data: SimulationInput):
         combinations = self._generate_combinations(input_data)
-        print(f"[INFO] Launching {len(combinations)} workers...")
+        logger.info(f"Launching {len(combinations)} workers...")
 
         for params in combinations:
             self._start_worker(*params)
 
-        print("[INFO] All workers launched. Waiting before exit...")
+        logger.info("All workers launched. Waiting before exit...")
 
     def _generate_combinations(self, input_data: SimulationInput):
         return list(product(
@@ -25,7 +30,7 @@ class SimulationRunner:
 
     def _start_worker(self, accel, tau, startup_delay):
         container_name = f"worker_{uuid.uuid4().hex[:8]}"
-        print(f"[INFO] Launching worker: {container_name} with accel={accel}, tau={tau}, startup_delay={startup_delay}")
+        logger.info(f"Launching worker: {container_name} with accel={accel}, tau={tau}, startup_delay={startup_delay}")
 
         self.client.containers.run(
             "traffic-sim-worker",

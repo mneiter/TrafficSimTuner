@@ -1,3 +1,8 @@
+import logging
+from .logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 from fastapi import BackgroundTasks, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -16,23 +21,23 @@ class TrafficSimController:
         self.runner = SimulationRunner()
 
     def ping(self):
-        print("[INFO] Ping endpoint called")
+        logger.info("Ping endpoint called")
         return {"status": "ok"}
 
     def index(self, request: Request):
         try:
-            print("[INFO] Serving index.html")
+            logger.info("Serving index.html")
             return self.templates.TemplateResponse("index.html", {"request": request})
         except Exception as e:
-            print(f"[ERROR] Failed to render index.html: {e}")
+            logger.error(f"Failed to render index.html: {e}")
             return HTMLResponse(content="Internal Server Error", status_code=500)
 
     async def submit(self, input_data: SimulationInput, background_tasks: BackgroundTasks, store: InMemoryStore):
         try:
             store.clear()
-            print(f"[DEBUG] Store values before submit: input_data={store.get_input_data()}, results={store.get_results()}, worker_count={store.get_worker_count()}")
+            logger.info(f"Store values before submit: input_data={store.get_input_data()}, results={store.get_results()}, worker_count={store.get_worker_count()}")
 
-            print(f"[INFO] Received input data: {input_data}")
+            logger.info(f"Received input data: {input_data}")
             store.save_input_data(input_data)
 
             background_tasks.add_task(self.runner.launch, input_data)
@@ -42,21 +47,21 @@ class TrafficSimController:
                 len(input_data.startup_delay_values)
             )
             store.set_worker_count(num_workers)
-            print(f"[INFO] Submitted simulation job with {num_workers} combinations.")
+            logger.info(f"Submitted simulation job with {num_workers} combinations.")
             return {"status": "processing_started", "total_combinations": num_workers}
         except Exception as e:
-            print(f"[ERROR] Failed to submit simulation: {e}")
+            logger.error(f"Failed to submit simulation: {e}")
             return {"status": "error", "message": str(e)}
 
     async def receive_result(self, result: SimulationResult, store: InMemoryStore):
         try:
-            print(f"[INFO] Received result: {result}")
+            logger.info(f"Received result: {result}")
             store.save_result(result)
 
-            print(f"[INFO] Total results stored: {len(store.get_results())}")
+            logger.info(f"Total results stored: {len(store.get_results())}")
             return {"status": "result_received"}
         except Exception as e:
-            print(f"[ERROR] Failed to process result: {e}")
+            logger.error(f"Failed to process result: {e}")
             return {"status": "error", "message": str(e)}
 
     def get_best_result(self, store: InMemoryStore):
@@ -65,8 +70,8 @@ class TrafficSimController:
             input_data = store.get_input_data()
             expected_total = store.get_worker_count()
 
-            print(f"[INFO] Restored input data: {input_data}")
-            print(f"[DEBUG] Stored {len(results)} of {expected_total} expected results.")
+            logger.info(f"Restored input data: {input_data}")
+            logger.debug(f"Stored {len(results)} of {expected_total} expected results.")
 
             if not results:
                 return {"status": "no_results_yet"}
@@ -81,10 +86,10 @@ class TrafficSimController:
             scorer = Scoring(input_data)
             best_result, best_score = scorer.best_result(results)
 
-            print(f"[INFO] Best result found: {best_result}")
-            print(f"[INFO] Minimum score: {best_score:.4f}")
+            logger.info(f"Best result found: {best_result}")
+            logger.info(f"Minimum score: {best_score:.4f}")
 
             return best_result
         except Exception as e:
-            print(f"[ERROR] Failed to fetch results: {e}")
+            logger.error(f"Failed to fetch results: {e}")
             return {"status": "error", "message": str(e)}

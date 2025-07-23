@@ -1,9 +1,13 @@
+import logging
+from .logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from .models import SimulationInput, SimulationResult
-
 from .store import InMemoryStore
 from .controller import TrafficSimController
 

@@ -1,3 +1,8 @@
+import logging
+from logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 import xml.etree.ElementTree as ET
 
 class VTypesConfigUpdater:
@@ -8,7 +13,7 @@ class VTypesConfigUpdater:
         self.filepath = filepath
 
     def update(self, accel: float, tau: float, startup_delay: float) -> None:
-        print(f"[INFO] Updating '{self.filepath}' with accel={accel}, tau={tau}, startupDelay={startup_delay}")
+        logger.info(f"Updating '{self.filepath}' with accel={accel}, tau={tau}, startupDelay={startup_delay}")
         tree = ET.parse(self.filepath)
         root = tree.getroot()
 
@@ -21,6 +26,6 @@ class VTypesConfigUpdater:
 
         if updated:
             tree.write(self.filepath)
-            print(f"[INFO] Successfully wrote updated values to '{self.filepath}'")
+            logger.info(f"Successfully wrote updated values to '{self.filepath}'")
         else:
-            print(f"[WARN] No <vType> tags found in '{self.filepath}'")
+            logger.warning(f"No <vType> tags found in '{self.filepath}'")

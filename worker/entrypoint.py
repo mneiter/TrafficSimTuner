@@ -1,3 +1,8 @@
+import logging
+from logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 import os
 from simulation_worker import SimulationWorker
 
@@ -10,9 +15,9 @@ def main():
 
         worker = SimulationWorker(accel, tau, startup_delay, master_url=master_url)
         result = worker.execute()
-        print("[RESULT]", result)
+        logger.info("[RESULT]", result)
     except Exception as e:
-        print(f"[ERROR] Worker failed: {e}")
+        logger.error(f"Worker failed: {e}")
 
 if __name__ == "__main__":
     main()

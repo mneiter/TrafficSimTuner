@@ -1,3 +1,8 @@
+import logging
+from .logging_config import setup_logger
+setup_logger()
+logger = logging.getLogger(__name__)
+
 from typing import List, Optional
 from .models import SimulationResult, SimulationInput
 import logging
@@ -18,7 +23,7 @@ class InMemoryStore:
     # --- Simulation Results ---
     def save_result(self, result: SimulationResult):
         with self._lock:
-            print(f"[INFO] Saving simulation result: {result}")
+            logger.info(f"Saving simulation result: {result}")
             self._results.append(result)
 
     def save_results(self, results: List[SimulationResult]):
@@ -31,6 +36,7 @@ class InMemoryStore:
 
     # --- Worker Count ---
     def set_worker_count(self, count: int):
+
         self._worker_count = count
 
     def get_worker_count(self) -> int:
