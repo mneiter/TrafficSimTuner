@@ -15,6 +15,7 @@ We implemented a distributed traffic simulation system where the master componen
 The user inputs expected delays and parameter ranges for acceleration, tau, and startup delay.
 
 **Example input:**
+
 - I2 expected delay: 50 seconds
 - I3 expected delay: 20 seconds
 - Accel values: `1,2,3`
@@ -64,11 +65,13 @@ Each worker posts its results to the master. The master computes scores based on
 The system successfully identifies and displays the optimal parameter configuration.
 
 **Example best match:**
+
 - Accel: 1
 - Tau: 1.5
 - Startup Delay: 0
 
 With intersection delays:
+
 - I2: 45.47 sec
 - I3: 20.24 sec
 
