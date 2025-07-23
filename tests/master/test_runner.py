@@ -1,34 +1,29 @@
-
 import pytest
-
 from master.app.models import SimulationInput
 from master.app.runner import SimulationRunner
 
-def test_generate_permutations():
-    input_data = SimulationInput(
-        accel_values=[1.0, 2.0],
-        tau_values=[0.5],
-        startup_delay_values=[0.0, 1.0],
-        expected_delays={"I2": 50.0, "I3": 20.0}
-    )
-    runner = SimulationRunner(input_data)
-    permutations = runner.generate_permutations()
 
-    expected = [
-        (1.0, 0.5, 0.0),
-        (1.0, 0.5, 1.0),
-        (2.0, 0.5, 0.0),
-        (2.0, 0.5, 1.0),
-    ]
-    assert permutations == expected
-    assert len(permutations) == 4
+@pytest.mark.runner
+def test_launch_starts_expected_workers(mocker):
+    """Test that SimulationRunner.launch calls Docker run the correct number of times."""
+    mock_client = mocker.Mock()
+    mock_run = mock_client.containers.run
+    mocker.patch("master.app.runner.docker.from_env", return_value=mock_client)
 
-def test_simulation_runner_count():
     input_data = SimulationInput(
         accel_values=[1.0],
-        tau_values=[0.5, 1.0],
+        tau_values=[1.0, 2.0],
         startup_delay_values=[0.0],
-        expected_delays={"I2": 30.0, "I3": 15.0}
+        expected_delays={"I2": 50.0, "I3": 20.0}
     )
-    runner = SimulationRunner(input_data)
-    assert runner.total_combinations() == 2
+
+    runner = SimulationRunner()
+    runner.launch(input_data)
+
+    assert mock_run.call_count == 2  # 1 accel * 2 tau * 1 delay = 2 combinations
+
+    # Optionally check arguments for the first call
+    args, kwargs = mock_run.call_args
+    assert kwargs["environment"]["ACCEL"] in [1.0]
+    assert kwargs["environment"]["TAU"] in [1.0, 2.0]
+    assert kwargs["environment"]["STARTUP_DELAY"] == 0.0
