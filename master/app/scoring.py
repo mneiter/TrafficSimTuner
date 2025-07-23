@@ -1,17 +1,24 @@
-from .models import SimulationInput, SimulationResult
 from typing import List, Tuple
+from .models import SimulationInput, SimulationResult
 
-def find_best_result(results: List[SimulationResult], input_data: SimulationInput) -> Tuple[SimulationResult, float]:
-    expected_delays = input_data.expected_delays
+class Scoring:
+    def __init__(self, input_data: SimulationInput):
+        self.expected_delays = input_data.expected_delays
 
-    def score(r: SimulationResult) -> float:
-        value = (
-            (r.intersection_avg_delays.get("I2", 0.0) - expected_delays["I2"]) ** 2 +
-            (r.intersection_avg_delays.get("I3", 0.0) - expected_delays["I3"]) ** 2
-        )
-        print(f"[DEBUG] Score for {r}: {value:.4f}")
-        return value
+    def _calculate_score(self, result: SimulationResult) -> float:
+        """
+        Calculate the total squared error between actual and expected delays.
+        """
+        i2_error = (result.intersection_avg_delays.get("I2", 0.0) - self.expected_delays["I2"]) ** 2
+        i3_error = (result.intersection_avg_delays.get("I3", 0.0) - self.expected_delays["I3"]) ** 2
+        total_error = i2_error + i3_error
+        print(f"[DEBUG] Score for {result}: {total_error:.4f}")
+        return total_error
 
-    best_result = min(results, key=score)
-    best_score = score(best_result)
-    return best_result, best_score
+    def best_result(self, results: List[SimulationResult]) -> Tuple[SimulationResult, float]:
+        """
+        Find the result with the lowest score.
+        """
+        best_result = min(results, key=self._calculate_score)
+        best_score = self._calculate_score(best_result)
+        return best_result, best_score

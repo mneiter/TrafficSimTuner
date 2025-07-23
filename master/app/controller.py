@@ -6,7 +6,7 @@ from pathlib import Path
 from .models import SimulationInput, SimulationResult
 from .store import InMemoryStore
 from .runner import SimulationRunner
-from .scoring import find_best_result
+from .scoring import Scoring
 
 
 class TrafficSimController:
@@ -78,7 +78,9 @@ class TrafficSimController:
                     "expected": expected_total
                 }
 
-            best_result, best_score = find_best_result(results, input_data)
+            scorer = Scoring(input_data)
+            best_result, best_score = scorer.best_result(results)
+
             print(f"[INFO] Best result found: {best_result}")
             print(f"[INFO] Minimum score: {best_score:.4f}")
 
