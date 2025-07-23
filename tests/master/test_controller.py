@@ -3,6 +3,8 @@ from unittest.mock import Mock, AsyncMock
 from master.app.controller import TrafficSimController
 from master.app.models import SimulationInput, SimulationResult
 from master.app.store import InMemoryStore
+from fastapi import BackgroundTasks
+
 
 
 @pytest.fixture
@@ -59,7 +61,12 @@ def test_get_best_result_no_results(controller):
 def test_get_best_result_in_progress(controller):
     store = InMemoryStore()
     store.set_worker_count(3)
-    store.save_result(SimulationResult(1.0, 1.0, 0.0, {"I2": 48.0, "I3": 18.0}))
+    store.save_result(SimulationResult(
+        accel=1.0,
+        tau=1.0,
+        startup_delay=0.0,
+        intersection_avg_delays={"I2": 48.0, "I3": 18.0}
+    ))
     response = controller.get_best_result(store)
     assert response["status"] == "in_progress"
     assert response["received"] == 1
@@ -75,8 +82,17 @@ def test_get_best_result_complete(controller):
         startup_delay_values=[0.0, 1.0],
         expected_delays={"I2": 50.0, "I3": 20.0}
     ))
-    store.save_result(SimulationResult(1.0, 1.0, 0.0, {"I2": 49.0, "I3": 21.0}))
-    store.save_result(SimulationResult(1.0, 1.0, 1.0, {"I2": 51.0, "I3": 19.0}))
+    store.save_result(SimulationResult(
+        accel=1.0,
+        tau=1.0,
+        startup_delay=0.0,
+        intersection_avg_delays={"I2": 49.0, "I3": 21.0}
+    ))
+    
+    store.save_result(SimulationResult(
+        accel=1.0,
+        tau=1.0,
+        startup_delay=1.0,
+        intersection_avg_delays={"I2": 51.0, "I3": 19.0}))
     result = controller.get_best_result(store)
     assert isinstance(result, SimulationResult)
-
