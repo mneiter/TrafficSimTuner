@@ -1,24 +1,26 @@
-import os
 import xml.etree.ElementTree as ET
 
-VTYPES_PATH = os.path.join(os.path.dirname(__file__), "hw_model.vtypes.xml")
+class VTypesConfigUpdater:
+    """
+    Updates a SUMO vtypes.xml file with the specified parameters.
+    """
+    def __init__(self, filepath: str):
+        self.filepath = filepath
 
-ACCEL = os.environ.get("ACCEL")
-TAU = os.environ.get("TAU")
-STARTUP_DELAY = os.environ.get("STARTUP_DELAY")
+    def update(self, accel: float, tau: float, startup_delay: float) -> None:
+        print(f"[INFO] Updating '{self.filepath}' with accel={accel}, tau={tau}, startupDelay={startup_delay}")
+        tree = ET.parse(self.filepath)
+        root = tree.getroot()
 
-def update_vtypes():
-    tree = ET.parse(VTYPES_PATH)
-    root = tree.getroot()
+        updated = False
+        for vtype in root.findall("vType"):
+            vtype.set("accel", str(accel))
+            vtype.set("tau", str(tau))
+            vtype.set("startupDelay", str(startup_delay))
+            updated = True
 
-    for vtype in root.findall("vType"):
-        if vtype.get("vClass") == "passenger":
-            if ACCEL: vtype.set("accel", ACCEL)
-            if TAU: vtype.set("tau", TAU)
-            if STARTUP_DELAY: vtype.set("startupDelay", STARTUP_DELAY)
-
-    tree.write(VTYPES_PATH)
-    print(f"✅ vtypes.xml updated with accel={ACCEL}, tau={TAU}, startupDelay={STARTUP_DELAY}")
-
-if __name__ == "__main__":
-    update_vtypes()
+        if updated:
+            tree.write(self.filepath)
+            print(f"[INFO] Successfully wrote updated values to '{self.filepath}'")
+        else:
+            print(f"[WARN] No <vType> tags found in '{self.filepath}'")

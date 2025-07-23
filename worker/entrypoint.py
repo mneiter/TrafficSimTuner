@@ -3,6 +3,7 @@ import time
 import xml.etree.ElementTree as ET
 import requests
 from run_simulation import run_simulation
+from update_vtypes import VTypesConfigUpdater
 
 VTYPES_PATH = "hw_model.vtypes.xml"
 MASTER_URL = os.environ.get("MASTER_URL")
@@ -37,7 +38,9 @@ def main():
             print(f"[ERROR] Could not reach master: {e}")
 
         print(f"[INFO] Received parameters: ACCEL={accel}, TAU={tau}, STARTUP_DELAY={startup_delay}")
-        update_vtypes(accel, tau, startup_delay)
+
+        updater = VTypesConfigUpdater("hw_model.vtypes.xml")
+        updater.update(accel, tau, startup_delay)
 
         print("[INFO] Starting simulation...")
         avg_delays = run_simulation()
