@@ -3,7 +3,9 @@ from master.app.models import SimulationInput, SimulationResult
 from master.app.scoring import Scoring
 
 
+@pytest.mark.scoring
 def test_best_result_finds_closest_match():
+    """Should return the result closest to expected delays."""
     input_data = SimulationInput(
         accel_values=[1.0],
         tau_values=[1.0],
@@ -12,9 +14,24 @@ def test_best_result_finds_closest_match():
     )
 
     results = [
-        SimulationResult(accel=1.0, tau=1.0, startupDelay=0.0, intersection_avg_delays={"I2": 55.0, "I3": 25.0}),
-        SimulationResult(accel=1.0, tau=1.0, startupDelay=0.0, intersection_avg_delays={"I2": 50.0, "I3": 21.0}),  # <-- closest
-        SimulationResult(accel=1.0, tau=1.0, startupDelay=0.0, intersection_avg_delays={"I2": 40.0, "I3": 15.0}),
+        SimulationResult(
+            accel=1.0,
+            tau=1.0,
+            startup_delay=0.0,
+            intersection_avg_delays={"I2": 55.0, "I3": 25.0}
+        ),
+        SimulationResult(
+            accel=1.0,
+            tau=1.0,
+            startup_delay=0.0,
+            intersection_avg_delays={"I2": 50.0, "I3": 21.0}  # closest
+        ),
+        SimulationResult(
+            accel=1.0,
+            tau=1.0,
+            startup_delay=0.0,
+            intersection_avg_delays={"I2": 40.0, "I3": 15.0}
+        ),
     ]
 
     scorer = Scoring(input_data)
@@ -24,7 +41,9 @@ def test_best_result_finds_closest_match():
     assert round(score, 4) == 1.0  # (0^2 + 1^2)
 
 
+@pytest.mark.scoring
 def test_score_handles_missing_keys_gracefully():
+    """Should return correct score when delay keys are missing."""
     input_data = SimulationInput(
         accel_values=[1.0],
         tau_values=[1.0],
@@ -32,16 +51,23 @@ def test_score_handles_missing_keys_gracefully():
         expected_delays={"I2": 10.0, "I3": 20.0}
     )
 
-    result = SimulationResult(accel=1.0, tau=1.0, startupDelay=0.0, intersection_avg_delays={})  # no delays
+    result = SimulationResult(
+        accel=1.0,
+        tau=1.0,
+        startup_delay=0.0,
+        intersection_avg_delays={}  # No delays provided
+    )
 
     scorer = Scoring(input_data)
     score = scorer._calculate_score(result)
 
-    expected = 10.0**2 + 20.0**2  # fallback to 0.0 for both
+    expected = 10.0**2 + 20.0**2
     assert score == expected
 
 
+@pytest.mark.scoring
 def test_score_exact_match_returns_zero():
+    """Should return 0.0 score for exact match."""
     input_data = SimulationInput(
         accel_values=[2.0],
         tau_values=[1.0],
@@ -52,7 +78,7 @@ def test_score_exact_match_returns_zero():
     result = SimulationResult(
         accel=2.0,
         tau=1.0,
-        startupDelay=0.5,
+        startup_delay=0.5,
         intersection_avg_delays={"I2": 12.3, "I3": 34.5}
     )
 
