@@ -30,9 +30,19 @@ def test_save_and_get_multiple_results():
     store = InMemoryStore()
     store.clear()
 
-    results = [
-        SimulationResult(1.0, 1.0, 0.0, {"I2": 40.0, "I3": 20.0}),
-        SimulationResult(1.0, 1.5, 0.0, {"I2": 42.0, "I3": 21.0}),
+    results = [        
+        SimulationResult(
+            accel=1.0,
+            tau=1.0,
+            startup_delay=0.0,
+            intersection_avg_delays={"I2": 40.0, "I3": 20.0}
+        ),
+        SimulationResult(
+            accel=1.0,
+            tau=1.5,
+            startup_delay=0.0,
+            intersection_avg_delays={"I2": 42.0, "I3": 41.0}
+        )
     ]
     store.save_results(results)
     stored = store.get_results()
@@ -63,10 +73,21 @@ def test_input_data():
 def test_clear_store():
     store = InMemoryStore()
     store.set_worker_count(3)
-    store.save_input_data(SimulationInput([1], [1], [0], {"I2": 40, "I3": 10}))
-    store.save_result(SimulationResult(1, 1, 0, {"I2": 40, "I3": 10}))
+    store.save_input_data(SimulationInput(
+        accel_values=[1],
+        tau_values=[1],
+        startup_delay_values=[0],
+        expected_delays={"I2": 40, "I3": 10}
+    ))
+    store.save_result(SimulationResult(
+        accel=1,
+        tau=1,
+        startup_delay=0,
+        intersection_avg_delays={"I2": 40, "I3": 10}
+    ))
 
     store.clear()
     assert store.get_worker_count() == 0
     assert store.get_input_data() is None
     assert store.get_results() == []
+
